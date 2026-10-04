@@ -1,0 +1,6 @@
+{
+  "name": "KwanzaFolha - Sistema de Salários Angola",
+  "description": "Sistema completo de processamento salarial ajustado à legislação de Angola: cálculo de IRT (Lei 28/20), INSS (3% trabalhador e 8% patronal), emissão de recibos de vencimento e mapas legais.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
