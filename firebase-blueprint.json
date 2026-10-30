@@ -1,0 +1,107 @@
+{
+  "entities": {
+    "CompanySettings": {
+      "title": "CompanySettings",
+      "description": "Configurações da empresa e parâmetros fiscais e parafiscais de Angola",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 200 },
+        "nif": { "type": "string", "maxLength": 50 },
+        "inssNumber": { "type": "string", "maxLength": 50 },
+        "commercialRegister": { "type": "string", "maxLength": 100 },
+        "address": { "type": "string", "maxLength": 255 },
+        "city": { "type": "string", "maxLength": 100 },
+        "province": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "bankName": { "type": "string", "maxLength": 100 },
+        "bankAccount": { "type": "string", "maxLength": 50 },
+        "iban": { "type": "string", "maxLength": 60 },
+        "hrResponsibleName": { "type": "string", "maxLength": 150 },
+        "hrResponsibleRole": { "type": "string", "maxLength": 150 },
+        "foodAllowanceExemptLimit": { "type": "number" },
+        "transportAllowanceExemptLimit": { "type": "number" },
+        "inssEmployeeRate": { "type": "number" },
+        "inssEmployerRate": { "type": "number" },
+        "workAccidentInsuranceRate": { "type": "number" },
+        "workingHoursPerMonth": { "type": "number" },
+        "workingDaysPerMonth": { "type": "number" },
+        "updatedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["name", "nif", "inssNumber"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "Registo de colaborador individual no quadro de pessoal",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 50 },
+        "fullName": { "type": "string", "maxLength": 200 },
+        "biNumber": { "type": "string", "maxLength": 50 },
+        "nif": { "type": "string", "maxLength": 50 },
+        "socialSecurityNumber": { "type": "string", "maxLength": 50 },
+        "birthDate": { "type": "string", "maxLength": 30 },
+        "gender": { "type": "string", "enum": ["M", "F"] },
+        "phone": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 150 },
+        "address": { "type": "string", "maxLength": 255 },
+        "city": { "type": "string", "maxLength": 100 },
+        "department": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "maxLength": 150 },
+        "admissionDate": { "type": "string", "maxLength": 30 },
+        "contractType": { "type": "string", "enum": ["determinado", "indeterminado", "estagio"] },
+        "status": { "type": "string", "enum": ["active", "on_leave", "terminated"] },
+        "baseSalary": { "type": "number" },
+        "foodAllowance": { "type": "number" },
+        "transportAllowance": { "type": "number" },
+        "roleAllowance": { "type": "number" },
+        "familyAllowance": { "type": "number" },
+        "housingAllowance": { "type": "number" },
+        "communicationAllowance": { "type": "number" },
+        "otherFixedAllowances": { "type": "number" },
+        "dependentsCount": { "type": "number" },
+        "bankName": { "type": "string", "maxLength": 100 },
+        "bankAccount": { "type": "string", "maxLength": 60 },
+        "iban": { "type": "string", "maxLength": 60 },
+        "createdAt": { "type": "string", "maxLength": 50 },
+        "updatedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["code", "fullName", "biNumber", "baseSalary"]
+    },
+    "PayrollPeriod": {
+      "title": "PayrollPeriod",
+      "description": "Período de processamento da folha salarial de Angola",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "month": { "type": "number" },
+        "year": { "type": "number" },
+        "label": { "type": "string", "maxLength": 100 },
+        "type": { "type": "string", "enum": ["regular", "vacation", "thirteenth"] },
+        "status": { "type": "string", "enum": ["draft", "processed", "approved", "paid"] },
+        "createdAt": { "type": "string", "maxLength": 50 },
+        "processedAt": { "type": "string", "maxLength": 50 },
+        "approvedAt": { "type": "string", "maxLength": 50 },
+        "processedBy": { "type": "string", "maxLength": 150 },
+        "items": { "type": "object" },
+        "results": { "type": "object" }
+      },
+      "required": ["id", "month", "year", "label", "type", "status"]
+    }
+  },
+  "firestore": {
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/CompanySettings" },
+      "description": "Configurações da empresa e parâmetros fiscais"
+    },
+    "/employees/{employeeId}": {
+      "schema": { "$ref": "#/entities/Employee" },
+      "description": "Colaboradores e funcionários da empresa"
+    },
+    "/payroll_periods/{periodId}": {
+      "schema": { "$ref": "#/entities/PayrollPeriod" },
+      "description": "Períodos e histórico de processamento de folha de pagamento"
+    }
+  }
+}

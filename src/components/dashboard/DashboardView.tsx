@@ -7,22 +7,23 @@ import {
   DollarSign, 
   FileSpreadsheet, 
   FileText, 
-  HelpCircle, 
+  Plus,
   Percent, 
   ShieldCheck, 
   Users, 
   Wallet 
 } from 'lucide-react';
 import { CompanySettings, Employee, PayrollPeriod } from '../../types/payroll';
-import { formatKz, formatPercent } from '../../utils/formatters';
+import { formatKz } from '../../utils/formatters';
 import { NavTab } from '../layout/Navbar';
 
 interface DashboardViewProps {
-  period: PayrollPeriod;
+  period?: PayrollPeriod | null;
   employees: Employee[];
   settings: CompanySettings;
   onNavigate: (tab: NavTab) => void;
   onSelectEmployeePayslip: (employeeId: string) => void;
+  onNewPayrollModal: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -31,19 +32,82 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   settings,
   onNavigate,
   onSelectEmployeePayslip,
+  onNewPayrollModal,
 }) => {
+  // Se não existirem colaboradores ou períodos ainda na BD
+  if (!period || employees.length === 0) {
+    return (
+      <div className="space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-neutral-200">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
+              Painel Executivo Salarial
+            </h1>
+            <p className="text-xs text-neutral-500 mt-1">
+              Base de Dados ligada (Google Cloud Firestore) · Conforme Legislação de Angola (IRT & INSS)
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onNavigate('settings')}
+              className="px-3.5 py-1.5 text-xs font-medium text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50 transition-colors shadow-xs"
+            >
+              Configurar Empresa
+            </button>
+            <button
+              onClick={() => onNavigate('employees')}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-neutral-900 rounded-md hover:bg-neutral-800 transition-colors shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Adicionar Colaborador</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Empty State Banner */}
+        <div className="p-10 bg-white rounded-xl border border-neutral-200 text-center max-w-2xl mx-auto space-y-4 my-8">
+          <div className="w-12 h-12 bg-neutral-100 rounded-full flex items-center justify-center mx-auto text-neutral-700">
+            <Users className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-bold text-neutral-900">
+            A sua Base de Dados está pronta para novos registos
+          </h2>
+          <p className="text-xs text-neutral-600 leading-relaxed max-w-lg mx-auto">
+            Todos os dados de teste fictícios foram removidos. Agora pode começar a cadastrar os seus colaboradores reais, com BI, NIF, INSS, salário base em Kwanzas e emitir a primeira folha oficial.
+          </p>
+
+          <div className="pt-2 flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => onNavigate('employees')}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-neutral-900 rounded-lg hover:bg-neutral-800 transition-colors shadow-xs"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Cadastrar 1º Colaborador</span>
+            </button>
+            <button
+              onClick={() => onNavigate('settings')}
+              className="px-4 py-2 text-xs font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-lg transition-colors"
+            >
+              Personalizar Dados da Empresa
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Cálculos agregados do período
-  const results = Object.values(period.results);
+  const results = Object.values(period.results || {});
   const totalEmployees = results.length;
 
-  const totalGross = results.reduce((acc, curr) => acc + curr.grossSalary, 0);
-  const totalNet = results.reduce((acc, curr) => acc + curr.netSalary, 0);
-  const totalIRT = results.reduce((acc, curr) => acc + curr.irtAmount, 0);
-  const totalINSSEmployee = results.reduce((acc, curr) => acc + curr.inssEmployeeAmount, 0);
-  const totalINSSEmployer = results.reduce((acc, curr) => acc + curr.inssEmployerAmount, 0);
+  const totalGross = results.reduce((acc, curr) => acc + (curr.grossSalary || 0), 0);
+  const totalNet = results.reduce((acc, curr) => acc + (curr.netSalary || 0), 0);
+  const totalIRT = results.reduce((acc, curr) => acc + (curr.irtAmount || 0), 0);
+  const totalINSSEmployee = results.reduce((acc, curr) => acc + (curr.inssEmployeeAmount || 0), 0);
+  const totalINSSEmployer = results.reduce((acc, curr) => acc + (curr.inssEmployerAmount || 0), 0);
   const totalINSS = totalINSSEmployee + totalINSSEmployer;
-  const totalCompanyCost = results.reduce((acc, curr) => acc + curr.totalCompanyCost, 0);
-  const totalExemptions = results.reduce((acc, curr) => acc + curr.totalExemptions, 0);
+  const totalCompanyCost = results.reduce((acc, curr) => acc + (curr.totalCompanyCost || 0), 0);
+  const totalExemptions = results.reduce((acc, curr) => acc + (curr.totalExemptions || 0), 0);
 
   // Repartição por departamento
   const deptMap: Record<string, { count: number; totalGross: number; totalNet: number }> = {};
@@ -74,9 +138,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             Painel Executivo Salarial
           </h1>
           <div className="flex items-center gap-2 mt-1 text-sm text-neutral-500">
-            <span>{settings.name}</span>
-            <span aria-hidden="true">·</span>
-            <span>NIF: {settings.nif}</span>
+            <span>{settings.name || 'Empresa'}</span>
+            {settings.nif && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>NIF: {settings.nif}</span>
+              </>
+            )}
             <span aria-hidden="true">·</span>
             <span>Período: {period.label}</span>
           </div>
@@ -189,7 +257,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Main Grid: Fiscal Compliance in Angola & Cost Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left Column: Angola Statutory Deadlines & Fiscal Obligations */}
+        {/* Left Column: Angola Statutory Deadlines */}
         <div className="p-6 bg-white rounded-lg border border-neutral-200 space-y-5">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-neutral-900 flex items-center gap-2">
@@ -303,7 +371,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          {/* Quick Payslip Table for Recent Employees */}
+          {/* Quick Payslip Table */}
           <div className="p-6 bg-white rounded-lg border border-neutral-200 space-y-4">
             <div className="flex items-center justify-between">
               <div>

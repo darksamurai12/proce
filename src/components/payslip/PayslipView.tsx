@@ -12,7 +12,7 @@ import { CompanySettings, Employee, PayrollPeriod } from '../../types/payroll';
 import { formatDatePT, formatKz, numberToWordsKz } from '../../utils/formatters';
 
 interface PayslipViewProps {
-  period: PayrollPeriod;
+  period?: PayrollPeriod | null;
   employees: Employee[];
   settings: CompanySettings;
   selectedEmployeeId?: string;
@@ -30,7 +30,7 @@ export const PayslipView: React.FC<PayslipViewProps> = ({
 
   const currentEmployeeIndex = employees.findIndex((e) => e.id === currentEmpId);
   const currentEmployee = employees[currentEmployeeIndex] || employees[0];
-  const calculation = currentEmployee ? period.results[currentEmployee.id] : null;
+  const calculation = currentEmployee && period?.results ? period.results[currentEmployee.id] : null;
 
   const handleNext = () => {
     if (currentEmployeeIndex < employees.length - 1) {
@@ -48,10 +48,17 @@ export const PayslipView: React.FC<PayslipViewProps> = ({
     window.print();
   };
 
-  if (!currentEmployee || !calculation) {
+  if (!period || !currentEmployee || !calculation) {
     return (
-      <div className="p-12 text-center text-neutral-500">
-        Nenhum recibo de vencimento disponível para este colaborador ou período.
+      <div className="p-16 text-center bg-white rounded-xl border border-neutral-200 max-w-lg mx-auto space-y-3">
+        <p className="text-sm font-semibold text-neutral-800">
+          Nenhum recibo de vencimento disponível.
+        </p>
+        <p className="text-xs text-neutral-500">
+          {!period
+            ? 'Crie ou selecione uma folha de processamento salarial para emitir os recibos.'
+            : 'Adicione colaboradores e processe a folha para gerar os recibos de vencimento oficiais.'}
+        </p>
       </div>
     );
   }

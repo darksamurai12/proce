@@ -6,19 +6,24 @@ import {
   FileCheck2, 
   FileText, 
   Lock, 
+  Plus,
   RefreshCw, 
-  SlidersHorizontal 
+  SlidersHorizontal,
+  Trash2
 } from 'lucide-react';
 import { CompanySettings, Employee, PayrollInputItem, PayrollPeriod } from '../../types/payroll';
 import { calculateEmployeePayroll } from '../../utils/angolaPayrollCalculator';
 import { exportToCSV, formatKz } from '../../utils/formatters';
 
 interface PayrollProcessingViewProps {
-  period: PayrollPeriod;
+  period?: PayrollPeriod | null;
   employees: Employee[];
   settings: CompanySettings;
   onUpdatePeriod: (updatedPeriod: PayrollPeriod) => void;
+  onDeletePeriod?: (periodId: string) => void;
   onViewPayslip: (employeeId: string) => void;
+  onNewPayrollModal: () => void;
+  onNavigateToEmployees: () => void;
 }
 
 export const PayrollProcessingView: React.FC<PayrollProcessingViewProps> = ({
@@ -26,11 +31,66 @@ export const PayrollProcessingView: React.FC<PayrollProcessingViewProps> = ({
   employees,
   settings,
   onUpdatePeriod,
-  onViewPayslip
+  onDeletePeriod,
+  onViewPayslip,
+  onNewPayrollModal,
+  onNavigateToEmployees,
 }) => {
+  if (!period) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-neutral-200">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
+              Processamento da Folha Salarial
+            </h1>
+            <p className="text-xs text-neutral-500 mt-1">
+              Gere folhas de pagamento mensais, subsídios de férias e 13º mês em Kwanzas
+            </p>
+          </div>
+          <button
+            onClick={onNewPayrollModal}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-neutral-900 rounded-lg hover:bg-neutral-800 transition-colors shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Criar Nova Folha</span>
+          </button>
+        </div>
+
+        <div className="p-10 bg-white rounded-xl border border-neutral-200 text-center max-w-lg mx-auto space-y-3">
+          <p className="text-sm font-medium text-neutral-800">
+            Nenhuma folha salarial activa no momento.
+          </p>
+          <p className="text-xs text-neutral-500">
+            {employees.length === 0
+              ? 'Antes de abrir uma folha, cadastre os colaboradores da sua empresa.'
+              : 'Clique no botão abaixo para abrir o processamento de um novo mês.'}
+          </p>
+          <div className="pt-2">
+            {employees.length === 0 ? (
+              <button
+                onClick={onNavigateToEmployees}
+                className="px-4 py-2 text-xs font-semibold text-white bg-neutral-900 rounded-lg hover:bg-neutral-800 transition-colors"
+              >
+                Cadastrar Colaboradores
+              </button>
+            ) : (
+              <button
+                onClick={onNewPayrollModal}
+                className="px-4 py-2 text-xs font-semibold text-white bg-neutral-900 rounded-lg hover:bg-neutral-800 transition-colors"
+              >
+                Abrir Novo Mês de Processamento
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const isLocked = period.status === 'approved' || period.status === 'paid';
   const [editingInputs, setEditingInputs] = useState<Record<string, PayrollInputItem>>(() => ({
-    ...period.items
+    ...(period.items || {})
   }));
 
   const handleInputChange = (employeeId: string, field: keyof PayrollInputItem, value: number) => {
@@ -65,7 +125,7 @@ export const PayrollProcessingView: React.FC<PayrollProcessingViewProps> = ({
     if (emp) {
       const newResult = calculateEmployeePayroll(emp, updated, settings, period.id);
       const updatedResults = {
-        ...period.results,
+        ...(period.results || {}),
         [employeeId]: newResult
       };
 
@@ -141,7 +201,7 @@ export const PayrollProcessingView: React.FC<PayrollProcessingViewProps> = ({
     ];
 
     const rows = employees.map((emp) => {
-      const res = period.results[emp.id];
+      const res = period.results?.[emp.id];
       if (!res) return [];
       return [
         emp.code,
@@ -176,12 +236,12 @@ export const PayrollProcessingView: React.FC<PayrollProcessingViewProps> = ({
   };
 
   // Totais resumidos
-  const resultsList = Object.values(period.results);
-  const totalGross = resultsList.reduce((acc, curr) => acc + curr.grossSalary, 0);
-  const totalNet = resultsList.reduce((acc, curr) => acc + curr.netSalary, 0);
-  const totalINSS3 = resultsList.reduce((acc, curr) => acc + curr.inssEmployeeAmount, 0);
-  const totalIRT = resultsList.reduce((acc, curr) => acc + curr.irtAmount, 0);
-  const totalINSS8 = resultsList.reduce((acc, curr) => acc + curr.inssEmployerAmount, 0);
+  const resultsList = Object.values(period.results || {});
+  const totalGross = resultsList.reduce((acc, curr) => acc + (curr.grossSalary || 0), 0);
+  const totalNet = resultsList.reduce((acc, curr) => acc + (curr.netSalary || 0), 0);
+  const totalINSS3 = resultsList.reduce((acc, curr) => acc + (curr.inssEmployeeAmount || 0), 0);
+  const totalIRT = resultsList.reduce((acc, curr) => acc + (curr.irtAmount || 0), 0);
+  const totalINSS8 = resultsList.reduce((acc, curr) => acc + (curr.inssEmployerAmount || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -251,6 +311,20 @@ export const PayrollProcessingView: React.FC<PayrollProcessingViewProps> = ({
               </>
             )}
           </button>
+
+          {onDeletePeriod && (
+            <button
+              onClick={() => {
+                if (confirm(`Tem a certeza que deseja eliminar a folha de ${period.label}?`)) {
+                  onDeletePeriod(period.id);
+                }
+              }}
+              className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              title="Eliminar esta folha da base de dados"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -294,7 +368,7 @@ export const PayrollProcessingView: React.FC<PayrollProcessingViewProps> = ({
             Ajustes do Mês (Faltas, Horas Extras, Bónus e Adiantamentos)
           </span>
           <span className="text-[11px] text-neutral-500">
-            Valores são recalculados instantaneamente nos termos do Código do IRT de Angola
+            Valores gravados directamente na Base de Dados Firestore
           </span>
         </div>
 
@@ -317,128 +391,136 @@ export const PayrollProcessingView: React.FC<PayrollProcessingViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {employees.map((emp) => {
-                const res = period.results[emp.id];
-                const input = editingInputs[emp.id] || {
-                  employeeId: emp.id,
-                  daysWorked: 22,
-                  daysAbsentUnjustified: 0,
-                  overtimeHoursDay: 0,
-                  overtimeHoursNight: 0,
-                  bonus: 0,
-                  salaryAdvance: 0,
-                  unionFeePercent: 1,
-                  otherDeductions: 0
-                };
+              {employees.length === 0 ? (
+                <tr>
+                  <td colSpan={12} className="py-8 text-center text-neutral-500">
+                    Nenhum colaborador adicionado ainda. Cadastre colaboradores para calcular a folha.
+                  </td>
+                </tr>
+              ) : (
+                employees.map((emp) => {
+                  const res = period.results?.[emp.id];
+                  const input = editingInputs[emp.id] || {
+                    employeeId: emp.id,
+                    daysWorked: 22,
+                    daysAbsentUnjustified: 0,
+                    overtimeHoursDay: 0,
+                    overtimeHoursNight: 0,
+                    bonus: 0,
+                    salaryAdvance: 0,
+                    unionFeePercent: 1,
+                    otherDeductions: 0
+                  };
 
-                if (!res) return null;
+                  if (!res) return null;
 
-                return (
-                  <tr key={emp.id} className="hover:bg-neutral-50/80 transition-colors">
-                    <td className="py-2.5 px-3 whitespace-nowrap">
-                      <div className="font-semibold text-neutral-900">{emp.fullName}</div>
-                      <div className="text-[11px] text-neutral-400 font-mono">
-                        {emp.code} · {emp.role}
-                      </div>
-                    </td>
+                  return (
+                    <tr key={emp.id} className="hover:bg-neutral-50/80 transition-colors">
+                      <td className="py-2.5 px-3 whitespace-nowrap">
+                        <div className="font-semibold text-neutral-900">{emp.fullName}</div>
+                        <div className="text-[11px] text-neutral-400 font-mono">
+                          {emp.code} · {emp.role}
+                        </div>
+                      </td>
 
-                    <td className="py-2.5 px-3 text-right font-mono font-medium text-neutral-800 whitespace-nowrap">
-                      {formatKz(emp.baseSalary)}
-                    </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-medium text-neutral-800 whitespace-nowrap">
+                        {formatKz(emp.baseSalary)}
+                      </td>
 
-                    {/* Inputs editáveis se não bloqueado */}
-                    <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                      <input
-                        type="number"
-                        min="0"
-                        max="22"
-                        disabled={isLocked}
-                        value={input.daysAbsentUnjustified}
-                        onChange={(e) => handleInputChange(emp.id, 'daysAbsentUnjustified', parseInt(e.target.value) || 0)}
-                        className="w-14 text-center py-1 font-mono text-xs border border-neutral-200 rounded disabled:bg-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900"
-                      />
-                    </td>
+                      {/* Inputs editáveis se não bloqueado */}
+                      <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                        <input
+                          type="number"
+                          min="0"
+                          max="22"
+                          disabled={isLocked}
+                          value={input.daysAbsentUnjustified}
+                          onChange={(e) => handleInputChange(emp.id, 'daysAbsentUnjustified', parseInt(e.target.value) || 0)}
+                          className="w-14 text-center py-1 font-mono text-xs border border-neutral-200 rounded disabled:bg-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900"
+                        />
+                      </td>
 
-                    <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                      <input
-                        type="number"
-                        min="0"
-                        max="80"
-                        disabled={isLocked}
-                        value={input.overtimeHoursDay}
-                        onChange={(e) => handleInputChange(emp.id, 'overtimeHoursDay', parseFloat(e.target.value) || 0)}
-                        className="w-14 text-center py-1 font-mono text-xs border border-neutral-200 rounded disabled:bg-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900"
-                      />
-                    </td>
+                      <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                        <input
+                          type="number"
+                          min="0"
+                          max="80"
+                          disabled={isLocked}
+                          value={input.overtimeHoursDay}
+                          onChange={(e) => handleInputChange(emp.id, 'overtimeHoursDay', parseFloat(e.target.value) || 0)}
+                          className="w-14 text-center py-1 font-mono text-xs border border-neutral-200 rounded disabled:bg-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900"
+                        />
+                      </td>
 
-                    <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                      <input
-                        type="number"
-                        min="0"
-                        max="80"
-                        disabled={isLocked}
-                        value={input.overtimeHoursNight}
-                        onChange={(e) => handleInputChange(emp.id, 'overtimeHoursNight', parseFloat(e.target.value) || 0)}
-                        className="w-14 text-center py-1 font-mono text-xs border border-neutral-200 rounded disabled:bg-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900"
-                      />
-                    </td>
+                      <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                        <input
+                          type="number"
+                          min="0"
+                          max="80"
+                          disabled={isLocked}
+                          value={input.overtimeHoursNight}
+                          onChange={(e) => handleInputChange(emp.id, 'overtimeHoursNight', parseFloat(e.target.value) || 0)}
+                          className="w-14 text-center py-1 font-mono text-xs border border-neutral-200 rounded disabled:bg-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900"
+                        />
+                      </td>
 
-                    <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                      <input
-                        type="number"
-                        min="0"
-                        step="5000"
-                        disabled={isLocked}
-                        value={input.bonus}
-                        onChange={(e) => handleInputChange(emp.id, 'bonus', parseFloat(e.target.value) || 0)}
-                        className="w-20 text-right pr-1 py-1 font-mono text-xs border border-neutral-200 rounded disabled:bg-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900"
-                      />
-                    </td>
+                      <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                        <input
+                          type="number"
+                          min="0"
+                          step="5000"
+                          disabled={isLocked}
+                          value={input.bonus}
+                          onChange={(e) => handleInputChange(emp.id, 'bonus', parseFloat(e.target.value) || 0)}
+                          className="w-20 text-right pr-1 py-1 font-mono text-xs border border-neutral-200 rounded disabled:bg-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900"
+                        />
+                      </td>
 
-                    <td className="py-2.5 px-2 text-center whitespace-nowrap">
-                      <input
-                        type="number"
-                        min="0"
-                        step="5000"
-                        disabled={isLocked}
-                        value={input.salaryAdvance}
-                        onChange={(e) => handleInputChange(emp.id, 'salaryAdvance', parseFloat(e.target.value) || 0)}
-                        className="w-20 text-right pr-1 py-1 font-mono text-xs border border-neutral-200 rounded disabled:bg-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900"
-                      />
-                    </td>
+                      <td className="py-2.5 px-2 text-center whitespace-nowrap">
+                        <input
+                          type="number"
+                          min="0"
+                          step="5000"
+                          disabled={isLocked}
+                          value={input.salaryAdvance}
+                          onChange={(e) => handleInputChange(emp.id, 'salaryAdvance', parseFloat(e.target.value) || 0)}
+                          className="w-20 text-right pr-1 py-1 font-mono text-xs border border-neutral-200 rounded disabled:bg-neutral-100 focus:outline-none focus:ring-1 focus:ring-neutral-900"
+                        />
+                      </td>
 
-                    {/* Resultados calculados */}
-                    <td className="py-2.5 px-3 text-right font-mono text-neutral-800 whitespace-nowrap">
-                      {formatKz(res.grossSalary)}
-                    </td>
+                      {/* Resultados calculados */}
+                      <td className="py-2.5 px-3 text-right font-mono text-neutral-800 whitespace-nowrap">
+                        {formatKz(res.grossSalary)}
+                      </td>
 
-                    <td className="py-2.5 px-3 text-right font-mono text-blue-700 whitespace-nowrap">
-                      {formatKz(res.inssEmployeeAmount)}
-                    </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-blue-700 whitespace-nowrap">
+                        {formatKz(res.inssEmployeeAmount)}
+                      </td>
 
-                    <td className="py-2.5 px-3 text-right font-mono text-amber-700 whitespace-nowrap">
-                      <div>{formatKz(res.irtAmount)}</div>
-                      <div className="text-[10px] text-neutral-400">
-                        {res.irtAmount === 0 ? 'Isento' : `${(res.irtExcessRate * 100).toFixed(0)}%`}
-                      </div>
-                    </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-amber-700 whitespace-nowrap">
+                        <div>{formatKz(res.irtAmount)}</div>
+                        <div className="text-[10px] text-neutral-400">
+                          {res.irtAmount === 0 ? 'Isento' : `${(res.irtExcessRate * 100).toFixed(0)}%`}
+                        </div>
+                      </td>
 
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-800 whitespace-nowrap bg-emerald-50/30">
-                      {formatKz(res.netSalary)}
-                    </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-800 whitespace-nowrap bg-emerald-50/30">
+                        {formatKz(res.netSalary)}
+                      </td>
 
-                    <td className="py-2.5 px-3 text-center whitespace-nowrap">
-                      <button
-                        onClick={() => onViewPayslip(emp.id)}
-                        className="p-1.5 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded transition-colors"
-                        title="Ver Recibo Individual"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                      <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                        <button
+                          onClick={() => onViewPayslip(emp.id)}
+                          className="p-1.5 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded transition-colors"
+                          title="Ver Recibo Individual"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

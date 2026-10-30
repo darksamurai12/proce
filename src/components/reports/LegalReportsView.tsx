@@ -12,7 +12,7 @@ import { CompanySettings, Employee, PayrollPeriod } from '../../types/payroll';
 import { exportToCSV, formatKz } from '../../utils/formatters';
 
 interface LegalReportsViewProps {
-  period: PayrollPeriod;
+  period?: PayrollPeriod | null;
   employees: Employee[];
   settings: CompanySettings;
 }
@@ -26,10 +26,23 @@ export const LegalReportsView: React.FC<LegalReportsViewProps> = ({
 }) => {
   const [activeReport, setActiveReport] = useState<ReportType>('inss');
 
+  if (!period || employees.length === 0) {
+    return (
+      <div className="p-16 text-center bg-white rounded-xl border border-neutral-200 max-w-lg mx-auto space-y-3">
+        <p className="text-sm font-semibold text-neutral-800">
+          Nenhum mapa legal disponível no momento.
+        </p>
+        <p className="text-xs text-neutral-500">
+          Para emitir as guias de IRT (AGT), folhas de INSS (11%) e ordens bancárias, certifique-se de que existem colaboradores cadastrados e um período de processamento activo.
+        </p>
+      </div>
+    );
+  }
+
   const resultsList = employees
     .map((emp) => ({
       emp,
-      res: period.results[emp.id]
+      res: period.results?.[emp.id]
     }))
     .filter((item) => !!item.res);
 

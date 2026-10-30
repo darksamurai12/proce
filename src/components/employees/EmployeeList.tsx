@@ -125,8 +125,26 @@ export const EmployeeList: React.FC<EmployeeListProps> = ({
             <tbody className="divide-y divide-neutral-100">
               {filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-neutral-500">
-                    Nenhum colaborador encontrado com os critérios actuais.
+                  <td colSpan={7} className="py-16 text-center">
+                    <div className="max-w-sm mx-auto space-y-3">
+                      <p className="text-sm font-medium text-neutral-800">
+                        {searchTerm ? 'Nenhum colaborador encontrado com os critérios actuais.' : 'A base de dados de colaboradores está vazia.'}
+                      </p>
+                      <p className="text-xs text-neutral-500">
+                        {searchTerm ? 'Tente ajustar a sua pesquisa.' : 'Cadastre o seu primeiro colaborador com BI, NIF, cargo e salário em Kwanzas.'}
+                      </p>
+                      {!searchTerm && (
+                        <div className="pt-2">
+                          <button
+                            onClick={onAddEmployee}
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-neutral-900 rounded-lg hover:bg-neutral-800 transition-colors shadow-xs"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>Cadastrar 1º Colaborador</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (
