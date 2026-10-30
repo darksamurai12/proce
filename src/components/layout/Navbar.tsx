@@ -28,7 +28,7 @@ interface NavbarProps {
   onSelectTab: (tab: NavTab) => void;
   activePeriodLabel?: string;
   onNewPayrollModal: () => void;
-  currentUser: User | null;
+  currentUser: { email?: string | null; displayName?: string | null } | null;
   onSignIn: () => void;
   onSignOut: () => void;
   isDbSyncing?: boolean;
@@ -59,18 +59,17 @@ export const Navbar: React.FC<NavbarProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
-          {/* Zone 1: Wordmark */}
+          {/* Zone 1: Wordmark / Brand Logo */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => onSelectTab('dashboard')}
-              className="text-left group flex items-center gap-2.5 focus:outline-none"
+              className="text-left group flex items-center focus:outline-none py-1"
             >
-              <div className="w-8 h-8 rounded-lg bg-neutral-900 text-white flex items-center justify-center font-bold text-sm tracking-tight shadow-sm">
-                Kz
-              </div>
-              <span className="text-lg font-bold tracking-tight text-neutral-900 group-hover:text-neutral-700 transition-colors">
-                KwanzaFolha Angola
-              </span>
+              <img
+                src="/assets/aistudio/logo_2_4756bbe5.png"
+                alt="We Business Consulting"
+                className="h-8 sm:h-9 w-auto object-contain transition-opacity group-hover:opacity-90"
+              />
             </button>
           </div>
 
@@ -114,11 +113,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <button
                 onClick={onSignIn}
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-md transition-colors"
-                title="Ligar com Google para salvar na Nuvem"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-neutral-800 bg-neutral-100 hover:bg-neutral-200 rounded-md transition-colors border border-neutral-300"
+                title="Aceder à tela de autenticação"
               >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Ligar Google</span>
+                <LogIn className="w-3.5 h-3.5 text-neutral-600" />
+                <span>Iniciar Sessão</span>
               </button>
             )}
 

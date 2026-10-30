@@ -60,12 +60,13 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 // Test connection on boot as mandated by the Firebase skill
 export async function testConnection(): Promise<boolean> {
   try {
-    await getDocFromServer(doc(db, 'settings', 'connection_test'));
+    await getDocFromServer(doc(db, 'test', 'connection'));
     return true;
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firebase client is offline or waiting for network.');
+      console.warn("Firebase client está em modo offline ou a aguardar rede.");
     }
     return false;
   }
 }
+

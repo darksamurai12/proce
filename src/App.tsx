@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut, User } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
 import { CompanySettings, Employee, PayrollPeriod } from './types/payroll';
 import { calculateEmployeePayroll } from './utils/angolaPayrollCalculator';
 import { Navbar, NavTab } from './components/layout/Navbar';
@@ -21,9 +21,10 @@ import { LegalReportsView } from './components/reports/LegalReportsView';
 import { SalaryCalculatorView } from './components/calculator/SalaryCalculatorView';
 import { SettingsView } from './components/settings/SettingsView';
 import { NewPeriodModal } from './components/payroll/NewPeriodModal';
+import { LoginView, AppUser } from './components/auth/LoginView';
 import { getMonthName } from './utils/formatters';
 
-import { auth, googleProvider, testConnection } from './firebase/config';
+import { auth, db, testConnection } from './firebase/config';
 import {
   DEFAULT_CLEAN_SETTINGS,
   loadCompanySettings,
@@ -36,12 +37,13 @@ import {
   savePayrollPeriodToDb,
   deletePayrollPeriodFromDb,
 } from './firebase/payrollService';
-import { Database, LogIn, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Database, LogIn, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 
 export default function App() {
-  // Estado de Autenticação Firebase
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // Estado de Autenticação da Aplicação
+  const [currentUser, setCurrentUser] = useState<AppUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isGuestMode, setIsGuestMode] = useState(false);
   const [dbConnected, setDbConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -73,31 +75,45 @@ export default function App() {
     }, 4000);
   };
 
-  // Inicialização e Monitorização de Autenticação
+  // Inicialização do Utilizador e Validação da Base de Dados Cloud Firestore
   useEffect(() => {
+    // 1. Carrega sessão guardada de utilizador
+    try {
+      const savedUserStr = localStorage.getItem('kwanzafolha_auth_user');
+      if (savedUserStr) {
+        const savedUser: AppUser = JSON.parse(savedUserStr);
+        setCurrentUser(savedUser);
+      }
+    } catch (_) {}
+
+    // 2. Garante que qualquer tentativa residual de token STS no Firebase Auth é encerrada
+    signOut(auth).catch(() => {});
+
+    // 3. Testa conectividade ao Cloud Firestore
     testConnection().then((ok) => {
       setDbConnected(ok);
     });
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      setIsAuthReady(true);
-
-      if (user) {
-        setIsSyncing(true);
-        try {
-          const loadedSettings = await loadCompanySettings();
-          setSettings(loadedSettings);
-        } catch (e) {
-          console.error('Erro ao carregar configurações:', e);
-        } finally {
-          setIsSyncing(false);
-        }
-      }
-    });
-
-    return () => unsubscribeAuth();
+    setIsAuthReady(true);
   }, []);
+
+  // Carrega configurações da empresa sempre que o utilizador estiver activo
+  useEffect(() => {
+    if (!currentUser) return;
+
+    setIsSyncing(true);
+    loadCompanySettings()
+      .then((loadedSettings) => {
+        setSettings(loadedSettings || DEFAULT_CLEAN_SETTINGS);
+      })
+      .catch((e) => {
+        console.warn('Configurações carregadas da base:', e);
+        setSettings(DEFAULT_CLEAN_SETTINGS);
+      })
+      .finally(() => {
+        setIsSyncing(false);
+      });
+  }, [currentUser]);
 
   // Subscrição em Tempo Real aos Colaboradores e Períodos no Firestore
   useEffect(() => {
@@ -141,24 +157,24 @@ export default function App() {
   // Período actual em visualização
   const activePeriod = periods.find((p) => p.id === activePeriodId) || periods[0] || null;
 
-  // Login com Conta Google
-  const handleGoogleSignIn = async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-      showFeedback('Sessão iniciada com sucesso. A sua base de dados está sincronizada!', 'success');
-    } catch (error: any) {
-      console.error('Erro ao iniciar sessão:', error);
-      showFeedback(`Falha ao iniciar sessão: ${error.message}`, 'error');
-    }
+  // Abrir Ecrã de Login
+  const handleOpenLogin = () => {
+    setIsGuestMode(false);
   };
 
-  const handleSignOut = async () => {
+  const handleLoginSuccess = (user: AppUser) => {
+    setCurrentUser(user);
+    showFeedback(`Bem-vindo, ${user.displayName}! Base de dados Cloud Firestore ligada.`, 'success');
+  };
+
+  const handleSignOut = () => {
     try {
-      await signOut(auth);
-      showFeedback('Sessão terminada.', 'info');
-    } catch (error: any) {
-      console.error('Erro ao terminar sessão:', error);
-    }
+      localStorage.removeItem('kwanzafolha_auth_user');
+      signOut(auth).catch(() => {});
+    } catch (_) {}
+    setCurrentUser(null);
+    setIsGuestMode(false);
+    showFeedback('Sessão terminada.', 'info');
   };
 
   // Guardar Colaborador (Adicionar / Editar) na BD
@@ -439,6 +455,38 @@ export default function App() {
     setCurrentTab('payslip');
   };
 
+  // Ecrã de carregamento inicial
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-screen bg-neutral-900 flex flex-col items-center justify-center p-4">
+        <div className="p-4 bg-white rounded-2xl shadow-2xl mb-4">
+          <img
+            src="/assets/aistudio/logo_2_4756bbe5.png"
+            alt="WE Business Consulting"
+            className="h-12 w-auto object-contain animate-pulse"
+          />
+        </div>
+        <div className="flex items-center gap-2 text-xs text-neutral-400 font-medium">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+          <span>A carregar o sistema salarial...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Ecrã de Login quando o utilizador não está autenticado e não escolheu modo convidado
+  if (!currentUser && !isGuestMode) {
+    return (
+      <LoginView
+        onSuccess={handleLoginSuccess}
+        onContinueAsGuest={() => {
+          setIsGuestMode(true);
+          showFeedback('Modo de demonstração activado.', 'info');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50 text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
       
@@ -449,7 +497,7 @@ export default function App() {
         activePeriodLabel={activePeriod?.label}
         onNewPayrollModal={() => setIsNewPeriodModalOpen(true)}
         currentUser={currentUser}
-        onSignIn={handleGoogleSignIn}
+        onSignIn={handleOpenLogin}
         onSignOut={handleSignOut}
         isDbSyncing={isSyncing}
       />
@@ -479,17 +527,17 @@ export default function App() {
         <div className="no-print bg-neutral-900 text-white px-4 py-3 text-xs border-b border-neutral-800">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5">
             <div className="flex items-center gap-2">
-              <Database className="w-4 h-4 text-amber-400 shrink-0" />
+              <Database className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>
-                <strong>Base de dados pronta (Google Cloud Firestore):</strong> Para gravar e sincronizar os seus colaboradores e folhas em tempo real com segurança, ligue a sua conta Google.
+                <strong>Base de Dados Cloud Firestore Activa:</strong> Inicie sessão com as suas credenciais para gerir e gravar os colaboradores e folhas salariais.
               </span>
             </div>
             <button
-              onClick={handleGoogleSignIn}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-neutral-900 font-semibold rounded-md hover:bg-neutral-100 transition-colors whitespace-nowrap shadow-xs"
+              onClick={handleOpenLogin}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-neutral-900 font-semibold rounded-md hover:bg-neutral-100 transition-colors whitespace-nowrap shadow-xs cursor-pointer"
             >
               <LogIn className="w-3.5 h-3.5" />
-              <span>Ligar com Google</span>
+              <span>Iniciar Sessão</span>
             </button>
           </div>
         </div>

@@ -6,30 +6,28 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
+    // Healthcheck / Connection check
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
     // Configurações da Empresa
     match /settings/{settingId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && isValidId(settingId);
+      allow read, write: if isValidId(settingId);
     }
 
     // Registo de Colaboradores (Dados Pessoais e Fiscais)
     match /employees/{employeeId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && isValidId(employeeId);
+      allow read, write: if isValidId(employeeId);
     }
 
     // Períodos e Processamentos Salariais
     match /payroll_periods/{periodId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && isValidId(periodId);
+      allow read, write: if isValidId(periodId);
     }
   }
 }

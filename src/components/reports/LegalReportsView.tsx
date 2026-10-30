@@ -5,11 +5,13 @@ import {
   Download, 
   FileSpreadsheet, 
   FileText, 
+  Loader2,
   Printer, 
   ShieldCheck 
 } from 'lucide-react';
 import { CompanySettings, Employee, PayrollPeriod } from '../../types/payroll';
 import { exportToCSV, formatKz } from '../../utils/formatters';
+import { exportElementToPdf } from '../../utils/pdfGenerator';
 
 interface LegalReportsViewProps {
   period?: PayrollPeriod | null;
@@ -25,6 +27,7 @@ export const LegalReportsView: React.FC<LegalReportsViewProps> = ({
   settings
 }) => {
   const [activeReport, setActiveReport] = useState<ReportType>('inss');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   if (!period || employees.length === 0) {
     return (
@@ -56,8 +59,35 @@ export const LegalReportsView: React.FC<LegalReportsViewProps> = ({
   const totalIRTTaxable = resultsList.reduce((acc, curr) => acc + curr.res.irtTaxableBase, 0);
   const totalIRT = resultsList.reduce((acc, curr) => acc + curr.res.irtAmount, 0);
 
+  const handleExportPdf = async () => {
+    if (!period) return;
+    setIsGeneratingPdf(true);
+    try {
+      const reportNames: Record<ReportType, string> = {
+        inss: `Mapa_INSS_11_${period.id}`,
+        irt: `Guia_IRT_AGT_${period.id}`,
+        bank_transfer: `Ordem_Bancaria_${period.id}`,
+        payroll_sheet: `Folha_Geral_Salarios_${period.id}`,
+      };
+      await exportElementToPdf({
+        filename: reportNames[activeReport],
+        elementId: 'legal-report-document',
+        fitSinglePage: false,
+      });
+    } catch (e) {
+      console.error('Falha ao exportar PDF do relatório:', e);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   const handlePrint = () => {
-    window.print();
+    handleExportPdf();
+    try {
+      window.print();
+    } catch {
+      // Ignora erro se sandboxed
+    }
   };
 
   const handleExportBankTransfer = () => {
@@ -132,42 +162,56 @@ export const LegalReportsView: React.FC<LegalReportsViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExportPdf}
+            disabled={isGeneratingPdf}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-neutral-900 rounded-md hover:bg-neutral-800 disabled:opacity-60 transition-colors shadow-xs"
+            title="Descarregar relatório actual em formato PDF"
+          >
+            {isGeneratingPdf ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            <span>{isGeneratingPdf ? 'A Gerar PDF...' : 'Exportar PDF'}</span>
+          </button>
+
           <button
             onClick={handlePrint}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-neutral-700 bg-white border border-neutral-300 rounded-md hover:bg-neutral-50 transition-colors shadow-xs"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>Imprimir Relatório</span>
+            <span>Imprimir</span>
           </button>
 
           {activeReport === 'bank_transfer' && (
             <button
               onClick={handleExportBankTransfer}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-neutral-900 rounded-md hover:bg-neutral-800 transition-colors shadow-xs"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-neutral-800 bg-neutral-100 border border-neutral-300 rounded-md hover:bg-neutral-200 transition-colors shadow-xs"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Descarregar Ficheiro Bancário (CSV)</span>
+              <span>Descarregar CSV</span>
             </button>
           )}
 
           {activeReport === 'inss' && (
             <button
               onClick={handleExportINSS}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-neutral-900 rounded-md hover:bg-neutral-800 transition-colors shadow-xs"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-neutral-800 bg-neutral-100 border border-neutral-300 rounded-md hover:bg-neutral-200 transition-colors shadow-xs"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Exportar Mapa INSS (CSV)</span>
+              <span>Exportar CSV</span>
             </button>
           )}
 
           {activeReport === 'irt' && (
             <button
               onClick={handleExportIRT}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-neutral-900 rounded-md hover:bg-neutral-800 transition-colors shadow-xs"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-neutral-800 bg-neutral-100 border border-neutral-300 rounded-md hover:bg-neutral-200 transition-colors shadow-xs"
             >
               <Download className="w-3.5 h-3.5" />
-              <span>Exportar Guia AGT (CSV)</span>
+              <span>Exportar CSV</span>
             </button>
           )}
         </div>
@@ -218,15 +262,27 @@ export const LegalReportsView: React.FC<LegalReportsViewProps> = ({
       </div>
 
       {/* REPORT CONTENT VIEWPORT */}
-      <div className="bg-white rounded-xl border border-neutral-300 shadow-xs p-6 sm:p-8 font-sans print:border-none print:shadow-none print:p-0">
+      <div 
+        id="legal-report-document"
+        className="bg-white p-6 sm:p-8 font-sans print:p-0"
+      >
         
-        {/* Company Header on Report */}
+        {/* Company Header on Report com Logótipo Oficial */}
         <div className="border-b border-neutral-300 pb-4 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-            <div>
-              <div className="text-base font-bold text-neutral-900 uppercase">{settings.name}</div>
-              <div className="text-xs text-neutral-500 mt-0.5">
-                NIF: {settings.nif} · Nº INSS: {settings.inssNumber} · {settings.city}, Angola
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div className="flex flex-col items-start gap-2">
+              <img
+                src="/assets/aistudio/logo_2_4756bbe5.png"
+                alt="WE Business Consulting"
+                className="h-10 sm:h-12 w-auto object-contain"
+              />
+              <div>
+                <div className="text-base font-bold text-neutral-900 uppercase">
+                  {settings.name || 'WE BUSINESS CONSULTING - PRESTAÇAO DE SERVIÇOS, LDA'}
+                </div>
+                <div className="text-xs text-neutral-500 mt-0.5">
+                  NIF: {settings.nif} · Nº INSS: {settings.inssNumber} · {settings.city || 'Luanda'}, Angola
+                </div>
               </div>
             </div>
             <div className="sm:text-right text-xs">
