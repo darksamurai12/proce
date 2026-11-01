@@ -296,7 +296,7 @@ export const SalaryCalculatorView: React.FC = () => {
                 )}
                 {result.irtAmount === 0 && (
                   <div className="text-emerald-700 text-[11px] font-medium">
-                    ✓ Isento de IRT por estar dentro do escalão até 100.000 Kz de Matéria Colectável.
+                    ✓ Isento de IRT por estar dentro do escalão até 150.000 Kz de Matéria Colectável.
                   </div>
                 )}
               </div>

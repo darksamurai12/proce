@@ -104,7 +104,7 @@ export const PayrollProcessingView: React.FC<PayrollProcessingViewProps> = ({
       overtimeHoursNight: 0,
       bonus: 0,
       salaryAdvance: 0,
-      unionFeePercent: 1,
+      unionFeePercent: 0,
       otherDeductions: 0
     };
 
@@ -148,7 +148,7 @@ export const PayrollProcessingView: React.FC<PayrollProcessingViewProps> = ({
         overtimeHoursNight: 0,
         bonus: 0,
         salaryAdvance: 0,
-        unionFeePercent: 1,
+        unionFeePercent: 0,
         otherDeductions: 0
       };
       newResults[emp.id] = calculateEmployeePayroll(emp, input, settings, period.id);
@@ -408,7 +408,7 @@ export const PayrollProcessingView: React.FC<PayrollProcessingViewProps> = ({
                     overtimeHoursNight: 0,
                     bonus: 0,
                     salaryAdvance: 0,
-                    unionFeePercent: 1,
+                    unionFeePercent: 0,
                     otherDeductions: 0
                   };
 

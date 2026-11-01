@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 import { 
-  Building2, 
-  CheckCircle2, 
   Lock, 
   Mail, 
   ShieldCheck, 
@@ -27,7 +25,6 @@ interface LoginViewProps {
 
 export const LoginView: React.FC<LoginViewProps> = ({
   onSuccess,
-  onContinueAsGuest,
 }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -36,21 +33,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Login Corporativo Rápido com perfil da WE Business Consulting
-  const handleQuickAdminLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      const user: AppUser = {
-        email: 'geral.weconsulting@gmail.com',
-        displayName: 'WE Business Consulting',
-        role: 'Administrador',
-      };
-      localStorage.setItem('kwanzafolha_auth_user', JSON.stringify(user));
-      setIsLoading(false);
-      onSuccess(user);
-    }, 400);
-  };
 
   // Login com Email e Senha
   const handleEmailAuth = (e: React.FormEvent) => {
@@ -150,34 +132,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
               </div>
             )}
 
-            {/* Acesso Rápido Administrador WE Business Consulting */}
-            <div>
-              <button
-                type="button"
-                onClick={handleQuickAdminLogin}
-                disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2.5 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs sm:text-sm rounded-lg transition-all duration-150 shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
-                ) : (
-                  <>
-                    <Building2 className="w-4 h-4" />
-                    <span>Entrar como WE Business Consulting</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Divider */}
-            <div className="relative flex items-center justify-center">
-              <div className="border-t border-neutral-800 w-full" />
-              <span className="bg-neutral-950 px-3 text-[11px] font-medium text-neutral-500 uppercase tracking-wider">
-                ou com as suas credenciais
-              </span>
-              <div className="border-t border-neutral-800 w-full" />
-            </div>
-
             {/* Email / Password Form */}
             <form onSubmit={handleEmailAuth} className="space-y-4">
               {isSignUp && (
@@ -191,8 +145,8 @@ export const LoginView: React.FC<LoginViewProps> = ({
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Ex: Welles Fábio Ramos Correia de Melo"
-                      className="w-full bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 transition-colors"
+                      placeholder="Ex: Nome do Utilizador"
+                      className="w-full bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 transition-colors"
                     />
                   </div>
                 </div>
@@ -208,9 +162,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="geral.weconsulting@gmail.com"
+                    placeholder="exemplo@empresa.ao"
                     required
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 transition-colors"
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none focus:border-neutral-500 focus:ring-1 focus:ring-neutral-500 transition-colors"
                   />
                 </div>
               </div>
@@ -287,20 +241,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </span>
               )}
             </div>
-
-            {/* Modo Convidado / Demonstração */}
-            {onContinueAsGuest && (
-              <div className="pt-3 border-t border-neutral-800/80 text-center">
-                <button
-                  type="button"
-                  onClick={onContinueAsGuest}
-                  className="text-xs text-neutral-400 hover:text-neutral-200 transition-colors font-medium hover:underline cursor-pointer"
-                >
-                  Continuar em Modo de Demonstração (Sem Registo)
-                </button>
-              </div>
-            )}
-
           </div>
         </div>
 

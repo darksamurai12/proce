@@ -17,17 +17,20 @@ service cloud.firestore {
 
     // Configurações da Empresa
     match /settings/{settingId} {
-      allow read, write: if isValidId(settingId);
+      allow get, list: if true;
+      allow write: if isValidId(settingId);
     }
 
     // Registo de Colaboradores (Dados Pessoais e Fiscais)
     match /employees/{employeeId} {
-      allow read, write: if isValidId(employeeId);
+      allow get, list: if true;
+      allow write: if isValidId(employeeId);
     }
 
     // Períodos e Processamentos Salariais
     match /payroll_periods/{periodId} {
-      allow read, write: if isValidId(periodId);
+      allow get, list: if true;
+      allow write: if isValidId(periodId);
     }
   }
 }

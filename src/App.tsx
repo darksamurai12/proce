@@ -82,7 +82,13 @@ export default function App() {
       const savedUserStr = localStorage.getItem('kwanzafolha_auth_user');
       if (savedUserStr) {
         const savedUser: AppUser = JSON.parse(savedUserStr);
-        setCurrentUser(savedUser);
+        // Se era a conta fixa de demonstração, remove para exigir autenticação real
+        if (savedUser && savedUser.email && savedUser.email !== 'geral.weconsulting@gmail.com') {
+          setCurrentUser(savedUser);
+        } else {
+          localStorage.removeItem('kwanzafolha_auth_user');
+          setCurrentUser(null);
+        }
       }
     } catch (_) {}
 
@@ -153,6 +159,62 @@ export default function App() {
       unsubPeriods();
     };
   }, [currentUser, activePeriodId]);
+
+  // Actualização automática e garantia de conformidade fiscal do IRT (isenção até 150.000 Kz)
+  useEffect(() => {
+    if (!employees.length || !periods.length || !settings) return;
+
+    let hasRecalculatedAny = false;
+    const updatedPeriods = periods.map((period) => {
+      let periodChanged = false;
+      const updatedResults = { ...(period.results || {}) };
+
+      employees.forEach((emp) => {
+        const oldResult = period.results?.[emp.id];
+        const input = period.items?.[emp.id] || {
+          employeeId: emp.id,
+          daysWorked: 22,
+          daysAbsentUnjustified: 0,
+          overtimeHoursDay: 0,
+          overtimeHoursNight: 0,
+          bonus: 0,
+          salaryAdvance: 0,
+          unionFeePercent: 0,
+          otherDeductions: 0,
+        };
+
+        const freshResult = calculateEmployeePayroll(emp, input, settings, period.id);
+
+        if (
+          !oldResult ||
+          Math.abs((oldResult.irtAmount || 0) - freshResult.irtAmount) > 0.01 ||
+          (oldResult.unionFeeAmount || 0) > 0 ||
+          Math.abs((oldResult.netSalary || 0) - freshResult.netSalary) > 0.01
+        ) {
+          updatedResults[emp.id] = freshResult;
+          periodChanged = true;
+          hasRecalculatedAny = true;
+        }
+      });
+
+      if (periodChanged) {
+        const refreshedPeriod: PayrollPeriod = {
+          ...period,
+          results: updatedResults,
+        };
+        savePayrollPeriodToDb(refreshedPeriod).catch((e) =>
+          console.warn('Folha atualizada na base com recálculo:', e)
+        );
+        return refreshedPeriod;
+      }
+
+      return period;
+    });
+
+    if (hasRecalculatedAny) {
+      setPeriods(updatedPeriods);
+    }
+  }, [employees, settings, periods]);
 
   // Período actual em visualização
   const activePeriod = periods.find((p) => p.id === activePeriodId) || periods[0] || null;
@@ -321,7 +383,7 @@ export default function App() {
         overtimeHoursNight: 0,
         bonus: 0,
         salaryAdvance: 0,
-        unionFeePercent: 1,
+        unionFeePercent: 0,
         otherDeductions: 0,
       };
       items[emp.id] = input;
@@ -474,15 +536,11 @@ export default function App() {
     );
   }
 
-  // Ecrã de Login quando o utilizador não está autenticado e não escolheu modo convidado
-  if (!currentUser && !isGuestMode) {
+  // Ecrã de Login quando o utilizador não está autenticado
+  if (!currentUser) {
     return (
       <LoginView
         onSuccess={handleLoginSuccess}
-        onContinueAsGuest={() => {
-          setIsGuestMode(true);
-          showFeedback('Modo de demonstração activado.', 'info');
-        }}
       />
     );
   }

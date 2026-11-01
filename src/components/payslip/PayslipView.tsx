@@ -369,14 +369,6 @@ export const PayslipView: React.FC<PayslipViewProps> = ({
                   <span className="font-mono font-semibold text-neutral-900">{formatKz(calculation.irtAmount)}</span>
                 </div>
 
-                {/* Quota Sindical */}
-                {calculation.unionFeeAmount > 0 && (
-                  <div className="flex justify-between pt-1">
-                    <span className="text-neutral-700">Quota Sindical</span>
-                    <span className="font-mono text-neutral-900">{formatKz(calculation.unionFeeAmount)}</span>
-                  </div>
-                )}
-
                 {/* Adiantamento Salarial */}
                 {calculation.salaryAdvance > 0 && (
                   <div className="flex justify-between pt-1">

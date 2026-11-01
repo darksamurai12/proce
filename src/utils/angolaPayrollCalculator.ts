@@ -9,90 +9,84 @@
 import { CompanySettings, Employee, IRTTier, PayrollCalculationResult, PayrollInputItem } from '../types/payroll';
 
 // Tabela oficial do IRT de Angola (Grupo A - Trabalhadores por conta de outrem)
+// Conforme Código do IRT (Lei n.º 28/20) e atualizações fiscais do OGE (isenção alargada até 150.000 Kz)
 export const ANGOLA_IRT_TIERS: IRTTier[] = [
   {
     min: 0,
-    max: 100000,
-    fixedAmount: 0,
-    rate: 0.0,
-    description: 'Até 100.000 Kz: Isento'
-  },
-  {
-    min: 100001,
     max: 150000,
     fixedAmount: 0,
-    rate: 0.13,
-    description: 'De 100.001 Kz a 150.000 Kz: 13% sobre o excesso de 100.000 Kz'
+    rate: 0.0,
+    description: 'Até 150.000 Kz: Isento'
   },
   {
     min: 150001,
     max: 200000,
-    fixedAmount: 6500,
+    fixedAmount: 12500,
     rate: 0.16,
-    description: 'De 150.001 Kz a 200.000 Kz: 6.500 Kz + 16% sobre o excesso de 150.000 Kz'
+    description: 'De 150.001 Kz a 200.000 Kz: 12.500 Kz + 16% sobre o excesso de 150.000 Kz'
   },
   {
     min: 200001,
     max: 300000,
-    fixedAmount: 14500,
+    fixedAmount: 31250,
     rate: 0.18,
-    description: 'De 200.001 Kz a 300.000 Kz: 14.500 Kz + 18% sobre o excesso de 200.000 Kz'
+    description: 'De 200.001 Kz a 300.000 Kz: 31.250 Kz + 18% sobre o excesso de 200.000 Kz'
   },
   {
     min: 300001,
     max: 500000,
-    fixedAmount: 32500,
+    fixedAmount: 49250,
     rate: 0.19,
-    description: 'De 300.001 Kz a 500.000 Kz: 32.500 Kz + 19% sobre o excesso de 300.000 Kz'
+    description: 'De 300.001 Kz a 500.000 Kz: 49.250 Kz + 19% sobre o excesso de 300.000 Kz'
   },
   {
     min: 500001,
     max: 1000000,
-    fixedAmount: 70500,
+    fixedAmount: 87250,
     rate: 0.20,
-    description: 'De 500.001 Kz a 1.000.000 Kz: 70.500 Kz + 20% sobre o excesso de 500.000 Kz'
+    description: 'De 500.001 Kz a 1.000.000 Kz: 87.250 Kz + 20% sobre o excesso de 500.000 Kz'
   },
   {
     min: 1000001,
     max: 1500000,
-    fixedAmount: 170500,
+    fixedAmount: 187250,
     rate: 0.21,
-    description: 'De 1.000.001 Kz a 1.500.000 Kz: 170.500 Kz + 21% sobre o excesso de 1.000.000 Kz'
+    description: 'De 1.000.001 Kz a 1.500.000 Kz: 187.250 Kz + 21% sobre o excesso de 1.000.000 Kz'
   },
   {
     min: 1500001,
     max: 2000000,
-    fixedAmount: 275500,
+    fixedAmount: 292250,
     rate: 0.22,
-    description: 'De 1.500.001 Kz a 2.000.000 Kz: 275.500 Kz + 22% sobre o excesso de 1.500.000 Kz'
+    description: 'De 1.500.001 Kz a 2.000.000 Kz: 292.250 Kz + 22% sobre o excesso de 1.500.000 Kz'
   },
   {
     min: 2000001,
     max: 2500000,
-    fixedAmount: 385500,
+    fixedAmount: 402250,
     rate: 0.23,
-    description: 'De 2.000.001 Kz a 2.500.000 Kz: 385.500 Kz + 23% sobre o excesso de 2.000.000 Kz'
+    description: 'De 2.000.001 Kz a 2.500.000 Kz: 402.250 Kz + 23% sobre o excesso de 2.000.000 Kz'
   },
   {
     min: 2500001,
     max: 5000000,
-    fixedAmount: 500500,
+    fixedAmount: 517250,
     rate: 0.24,
-    description: 'De 2.500.001 Kz a 5.000.000 Kz: 500.500 Kz + 24% sobre o excesso de 2.500.000 Kz'
+    description: 'De 2.500.001 Kz a 5.000.000 Kz: 517.250 Kz + 24% sobre o excesso de 2.500.000 Kz'
   },
   {
     min: 5000001,
     max: 10000000,
-    fixedAmount: 1100500,
+    fixedAmount: 1117250,
     rate: 0.245,
-    description: 'De 5.000.001 Kz a 10.000.000 Kz: 1.100.500 Kz + 24.5% sobre o excesso de 5.000.000 Kz'
+    description: 'De 5.000.001 Kz a 10.000.000 Kz: 1.117.250 Kz + 24.5% sobre o excesso de 5.000.000 Kz'
   },
   {
     min: 10000001,
     max: null,
-    fixedAmount: 2325500,
+    fixedAmount: 2342250,
     rate: 0.25,
-    description: 'Superior a 10.000.000 Kz: 2.325.500 Kz + 25% sobre o excesso de 10.000.000 Kz'
+    description: 'Superior a 10.000.000 Kz: 2.342.250 Kz + 25% sobre o excesso de 10.000.000 Kz'
   }
 ];
 
@@ -100,7 +94,7 @@ export const ANGOLA_IRT_TIERS: IRTTier[] = [
  * Encontra o escalão de IRT correspondente à Matéria Colectável
  */
 export function getIRTTier(taxableBase: number): IRTTier {
-  if (taxableBase <= 100000) {
+  if (taxableBase <= 150000) {
     return ANGOLA_IRT_TIERS[0];
   }
   for (const tier of ANGOLA_IRT_TIERS) {
@@ -129,7 +123,7 @@ export function calculateIRT(taxableBase: number): {
   const roundedBase = Math.max(0, Math.floor(taxableBase));
   const tier = getIRTTier(roundedBase);
 
-  if (roundedBase <= 100000) {
+  if (roundedBase <= 150000) {
     return {
       taxableBase: roundedBase,
       tier,
@@ -254,9 +248,8 @@ export function calculateEmployeePayroll(
   const irtCalc = calculateIRT(irtTaxableBase);
   const irtAmount = irtCalc.taxAmount;
 
-  // Outros Descontos
-  const unionFeeRate = (input.unionFeePercent || 0) / 100;
-  const unionFeeAmount = Math.round(employee.baseSalary * unionFeeRate * 100) / 100;
+  // Outros Descontos (Quota Sindical desativada/removida)
+  const unionFeeAmount = 0;
   const salaryAdvance = Math.max(0, input.salaryAdvance || 0);
   const otherDeductions = Math.max(0, input.otherDeductions || 0);
 
